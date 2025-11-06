@@ -308,43 +308,37 @@ else:  # selected_tab == "CAS号查询"
                 )
 
                 result_row = result.iloc[0]
-                test_fields = ['AD Test Passeda', 'KS Test Passeda', 'JB Test Passeda']
+                test_fields = ['AD 检验', 'KS 检验', 'JB 检验']
                 other_fields = [field for field in result.columns if field not in test_fields]
 
-                cols = st.columns(4)
-                field_index = 0
+                # ---------- 关键修改：用网格布局实现对齐 ----------
+                # 每行分2列：左列（表头）+ 右列（数值）
                 for field_name in other_fields:
                     field_value = result_row[field_name]
                     display_value = str(field_value) if pd.notna(field_value) else "无数据"
 
-                    if field_index % 2 == 0:
-                        label_col = cols[0]
-                        value_col = cols[1]
-                    else:
-                        label_col = cols[2]
-                        value_col = cols[3]
-
-                    with label_col:
+                    # 定义左右列（左列固定宽度，右列自适应）
+                    col_left, col_right = st.columns([2, 3])
+                    with col_left:
                         st.markdown(
                             f"""
-                            <div style="background-color:#f0f8ff;padding:10px; border-radius:4px; margin-bottom:8px; text-align:center;">
+                            <div style="background-color:#f0f8ff;padding:10px; border-radius:4px; margin-bottom:8px; text-align:right;">
                                 <strong>{field_name}：</strong>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
-
-                    with value_col:
+                    with col_right:
                         st.markdown(
                             f"""
-                            <div style="padding:10px; border-radius:4px; margin-bottom:8px; text-align:center;">
+                            <div style="padding:10px; border-radius:4px; margin-bottom:8px; text-align:left;">
                                 <span>{display_value}</span>
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
-                    field_index += 1
 
+                # 测试结果部分保持原逻辑
                 test_cols = st.columns(3)
                 for i, field_name in enumerate(test_fields):
                     field_value = result_row[field_name]
