@@ -555,6 +555,11 @@ def page_cas():
                     """,
                     unsafe_allow_html=True
                 )
+    st.markdown("---")
+    conc_file = "毒性数据.xlsx"
+    if file_exists(conc_file):
+        with open(conc_file, "rb") as f:
+            st.download_button("下载毒性数据", data=f, file_name=conc_file)
     back_col, _ = st.columns([1, 9])
     with back_col:
         if st.button("← 返回首页"):
@@ -572,3 +577,4 @@ elif st.session_state.page == "cas":
     page_cas()
 else:
     page_home()
+
