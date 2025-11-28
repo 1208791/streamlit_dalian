@@ -183,12 +183,12 @@ def file_exists(file_path):
     return os.path.exists(file_path)
 
 
-def load_concentration_data(filepath="浓度点位数据v1.xlsx"):
+def load_concentration_data(filepath="浓度点位数据.xlsx"):
     try:
         df = pd.read_excel(filepath)
         df.columns = df.columns.astype(str).str.strip().str.replace('\n', '').str.lower()
         st.session_state.excel_columns = df.columns.tolist()
-        base_cols_clean = ['分类', '序号', '站位', '采样时间', '经度', '纬度']
+        base_cols_clean = ['分类', '序号', '点位', '采样时间', '经度', '纬度']
         missing_base_cols = [col for col in base_cols_clean if col not in df.columns]
         if missing_base_cols:
             st.error(f"Excel 缺少基础列（小写匹配后）：{', '.join(missing_base_cols)}")
@@ -304,7 +304,7 @@ def page_map():
     st.header("大连近岸海域抗生素及环境激素浓度地图")
 
     # 页面布局：左侧地图，右侧数据面板
-    df = load_concentration_data("浓度点位数据v1.xlsx")
+    df = load_concentration_data("浓度点位数据.xlsx")
     if df.empty:
         st.warning("未加载到有效浓度数据，返回首页查看帮助或检查文件。")
         return
@@ -348,7 +348,7 @@ def page_map():
 
             # 准备基础水文数据（必显示）
             base_data = {
-                '站位': row.get('站位', '未知'),
+                '点位': row.get('点位', '未知'),
                 # '分类': row.get('分类', '未知'),
                 '采样时间': row.get('采样时间', '未知'),
                 '纬度': round(lat, 4),
@@ -361,7 +361,7 @@ def page_map():
             # 创建弹窗内容：仅显示基础水文信息 + 当前选中参数浓度
             popup_html = f"""
                 <div style="font-size:14px; width:250px;">
-                <strong>站位：</strong>{base_data['站位']}<br>
+                <strong>点位：</strong>{base_data['点位']}<br>
                 <strong>采样时间：</strong>{base_data['采样时间']}<br>
                 <strong>经纬度：</strong>{base_data['纬度']}, {base_data['经度']}<hr>
                 <strong style="color:#0b5bd7;">{selected_param}：</strong>{base_data[selected_param]}<br>
@@ -443,7 +443,7 @@ def page_map():
             row = matched_rows.iloc[0]
             # 仅存储基础水文信息和当前选中参数
             point_data = {
-                '站位': row.get('站位', '未知'),
+                '点位': row.get('点位', '未知'),
                 # '分类': row.get('分类', '未知'),
                 '采样时间': row.get('采样时间', '未知'),
                 '纬度': round(row['纬度'], 4),
@@ -455,7 +455,7 @@ def page_map():
 
             # 显示点击后的详情面板（仅基础信息+选中参数）
             # st.markdown("---")
-            # st.markdown(f"<h3>点位详情 - {point_data['站位']}</h3>", unsafe_allow_html=True)
+            # st.markdown(f"<h3>点位详情 - {point_data['点位']}</h3>", unsafe_allow_html=True)
             # with st.container(class_="data-panel"):
             #     col1, col2 = st.columns(2)
             #     with col1:
@@ -469,7 +469,7 @@ def page_map():
 
     # 返回首页按钮和下载按钮
     st.markdown("---")
-    conc_file = "浓度点位数据v1.xlsx"
+    conc_file = "浓度点位数据.xlsx"
     if file_exists(conc_file):
         with open(conc_file, "rb") as f:
             st.download_button("下载浓度点位数据", data=f, file_name=conc_file)
@@ -577,5 +577,6 @@ elif st.session_state.page == "cas":
     page_cas()
 else:
     page_home()
+
 
 
