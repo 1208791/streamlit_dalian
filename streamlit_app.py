@@ -257,7 +257,7 @@ def goto(page_name):
 # -------------------------
 def page_home():
     st.markdown(
-        "<h1 style='text-align:center;margin-top:-100px;font-size: 70px;'>大连近岸海域抗生素及环境激素风险管控平台</h1>",
+        "<h1 style='text-align:center;margin-top:-100px;font-size: 65px;'>大连近岸海域抗生素及环境激素风险管控平台</h1>",
         unsafe_allow_html=True)
 
     # 页面布局：左图 (宽) , 右功能卡 (窄)
@@ -571,6 +571,7 @@ elif st.session_state.page == "cas":
     page_cas()
 else:
     page_home()
+
 
 
 
