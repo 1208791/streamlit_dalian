@@ -7,6 +7,7 @@ import os
 import warnings
 import numpy as np
 import base64
+import json
 
 st.set_option("client.toolbarMode", "viewer")
 
@@ -193,7 +194,8 @@ def load_concentration_data(filepath="浓度点位数据v1.xlsx"):
             st.error(f"Excel 缺少基础列（小写匹配后）：{', '.join(missing_base_cols)}")
             return pd.DataFrame()
         df = df.dropna(subset=['经度', '纬度']).reset_index(drop=True)
-        param_cols = [col for col in df.columns if col not in base_cols_clean]
+        exclude_cols = ['水深', '水温℃', '盐度', 'ph', '溶解氧mg/l']
+        param_cols = [col for col in df.columns if col not in base_cols_clean and col not in exclude_cols]
         param_cols_original = [col.capitalize() if col not in ['经度', '纬度'] else col for col in param_cols]
         st.session_state.all_param_cols = param_cols_original
 
@@ -324,7 +326,7 @@ def page_map():
         )
         return m
 
-    def create_map_with_markers():
+    def create_map_with_markers(selected_param):
         m = create_map()
         param_col_clean = selected_param.lower()
         param_valid = pd.to_numeric(df[param_col_clean], errors='coerce').dropna()
@@ -335,7 +337,7 @@ def page_map():
             max_val = max(param_valid.max(), 1e-9)
             colormap = cm.LinearColormap(['blue', 'green', 'yellow', 'orange', 'red'], vmin=param_valid.min(),
                                          vmax=max_val)
-            colormap.caption = f"{selected_param}"
+            colormap.caption = f"{selected_param} 浓度"
             m.add_child(colormap)
 
         # 创建一个 FeatureGroup 来存储所有标记
@@ -344,41 +346,28 @@ def page_map():
         for idx, row in df.iterrows():
             lat, lng = row['纬度'], row['经度']
 
-            # 准备点位数据
-            point_data = {
+            # 准备基础水文数据（必显示）
+            base_data = {
                 '站位': row.get('站位', '未知'),
-                '分类': row.get('分类', '未知'),
+                # '分类': row.get('分类', '未知'),
                 '采样时间': row.get('采样时间', '未知'),
                 '纬度': round(lat, 4),
                 '经度': round(lng, 4),
             }
-            # 添加所有参数浓度
-            for param in st.session_state.all_param_cols:
-                val = row.get(param.lower(), np.nan)
-                point_data[param] = f"{float(val):.4f}" if pd.notna(val) else "无数据"
+            # 只获取当前选中参数的浓度
+            selected_val = row.get(param_col_clean, np.nan)
+            base_data[selected_param] = f"{float(selected_val):.4f}" if pd.notna(selected_val) else "无数据"
 
-            # 创建弹窗内容
-            # popup_html = f"""
-            #     <div style="font-size:16px;">
-            #     <strong>站位：</strong>{point_data['站位']}<br>
-            #     <strong>{selected_param}：</strong>{point_data[selected_param]}<br>
-            #     <button onclick="window.parent.postMessage({{type: 'streamlit:setSessionState', data: {{ clicked_point_data: {json.dumps(point_data)} }}}}, '*')">
-            #         查看详情
-            #     </button>
-            #     </div>
-            # """
+            # 创建弹窗内容：仅显示基础水文信息 + 当前选中参数浓度
             popup_html = f"""
-                            <div style="font-size:12px">
-                            <strong>站位：</strong>{row.get('站位', '未知')}<br>
-                            <strong>分类：</strong>{row.get('分类', '未知')}<br>
-                            <strong>采样时间：</strong>{row.get('采样时间', '未知')}<br>
-                            <strong>经纬度：</strong>{lat:.4f}, {lng:.4f}<hr>
-                        """
-            for param in st.session_state.all_param_cols:
-                val = row.get(param.lower(), np.nan)
-                display_val = f"{float(val):.4f}" if pd.notna(val) else "无数据"
-                popup_html += f"<div>{param}：{display_val}</div>"
-            popup_html += "</div>"
+                <div style="font-size:14px; width:250px;">
+                <strong>站位：</strong>{base_data['站位']}<br>
+                <strong>采样时间：</strong>{base_data['采样时间']}<br>
+                <strong>经纬度：</strong>{base_data['纬度']}, {base_data['经度']}<hr>
+                <strong style="color:#0b5bd7;">{selected_param}：</strong>{base_data[selected_param]}<br>
+                </div>
+            """
+
             # 决定标记点颜色
             color = "#808080"
             if not pd.isna(row[param_col_clean]) and colormap:
@@ -431,14 +420,14 @@ def page_map():
 
     # 在左侧列中显示地图
     map_key = f"map_{st.session_state.last_map_key}_{selected_param}"
-    map_data = st_folium(create_map_with_markers(), width=1200, height=800, key=map_key,
+    map_data = st_folium(create_map_with_markers(selected_param), width=1200, height=800, key=map_key,
                          returned_objects=["center", "zoom", "last_object_clicked"])
 
     if map_data and map_data.get("center") and map_data.get("zoom"):
         st.session_state.map_center = [map_data["center"]["lat"], map_data["center"]["lng"]]
         st.session_state.map_zoom = map_data["zoom"]
 
-    # 处理通过last_object_clicked传递的数据
+    # 处理通过last_object_clicked传递的数据：仅存储基础信息+当前选中参数
     if map_data and map_data.get("last_object_clicked"):
         clicked_lat = map_data["last_object_clicked"]["lat"]
         clicked_lng = map_data["last_object_clicked"]["lng"]
@@ -452,20 +441,31 @@ def page_map():
 
         if not matched_rows.empty:
             row = matched_rows.iloc[0]
+            # 仅存储基础水文信息和当前选中参数
             point_data = {
                 '站位': row.get('站位', '未知'),
-                '分类': row.get('分类', '未知'),
+                # '分类': row.get('分类', '未知'),
                 '采样时间': row.get('采样时间', '未知'),
                 '纬度': round(row['纬度'], 4),
                 '经度': round(row['经度'], 4),
+                selected_param: f"{float(row.get(selected_param.lower(), np.nan)):.4f}"
+                                if pd.notna(row.get(selected_param.lower(), np.nan)) else "无数据"
             }
-            for param in st.session_state.all_param_cols:
-                val = row.get(param.lower(), np.nan)
-                point_data[param] = f"{float(val):.4f}" if pd.notna(val) else "无数据"
-
             st.session_state.clicked_point_data = point_data
 
-
+            # 显示点击后的详情面板（仅基础信息+选中参数）
+            # st.markdown("---")
+            # st.markdown(f"<h3>点位详情 - {point_data['站位']}</h3>", unsafe_allow_html=True)
+            # with st.container(class_="data-panel"):
+            #     col1, col2 = st.columns(2)
+            #     with col1:
+            #         # st.markdown(f"<strong>分类：</strong>{point_data['分类']}", unsafe_allow_html=True)
+            #         st.markdown(f"<strong>采样时间：</strong>{point_data['采样时间']}", unsafe_allow_html=True)
+            #         st.markdown(f"<strong>纬度：</strong>{point_data['纬度']}", unsafe_allow_html=True)
+            #         st.markdown(f"<strong>经度：</strong>{point_data['经度']}", unsafe_allow_html=True)
+            #     with col2:
+            #         st.markdown(f"<strong style='color:#0b5bd7; font-size:28px;'>{selected_param}：</strong>{point_data[selected_param]}",
+            #                    unsafe_allow_html=True)
 
     # 返回首页按钮和下载按钮
     st.markdown("---")
@@ -477,6 +477,7 @@ def page_map():
     with back_col:
         if st.button("← 返回首页"):
             goto("home")
+
 # -------------------------
 # CAS 查询页面
 # -------------------------
@@ -571,7 +572,3 @@ elif st.session_state.page == "cas":
     page_cas()
 else:
     page_home()
-
-
-
-
