@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore")
 # -------------------------
 # 页面与样式设置
 # -------------------------
-st.set_page_config(page_title="大连近岸海域风险管控平台", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="大连近岸海域抗生素及环境激素风险管控平台", layout="wide", initial_sidebar_state="collapsed")
 
 
 def set_global_font_size(size="16px"):
@@ -257,7 +257,7 @@ def goto(page_name):
 # -------------------------
 def page_home():
     st.markdown(
-        "<h1 style='text-align:center;margin-top:-100px;font-size: 75px;'>大连近岸海域抗生素与环境激素风险管控平台</h1>",
+        "<h1 style='text-align:center;margin-top:-100px;font-size: 75px;'>大连近岸海域抗生素及环境激素风险管控平台</h1>",
         unsafe_allow_html=True)
 
     # 页面布局：左图 (宽) , 右功能卡 (窄)
@@ -571,3 +571,4 @@ elif st.session_state.page == "cas":
     page_cas()
 else:
     page_home()
+
