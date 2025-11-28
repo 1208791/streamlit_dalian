@@ -299,7 +299,7 @@ def page_home():
 # 浓度地图页面 (修复版本)
 # -------------------------
 def page_map():
-    st.header("大连近岸海域抗生素与环境激素浓度地图")
+    st.header("大连近岸海域抗生素及环境激素浓度地图")
 
     # 页面布局：左侧地图，右侧数据面板
     df = load_concentration_data("浓度点位数据v1.xlsx")
@@ -571,4 +571,5 @@ elif st.session_state.page == "cas":
     page_cas()
 else:
     page_home()
+
 
