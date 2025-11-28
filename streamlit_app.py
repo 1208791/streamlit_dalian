@@ -497,7 +497,7 @@ def page_cas():
         st.warning("毒性数据为空，请检查源文件。")
         return
 
-    cas_input = st.text_input("", placeholder="例如：1912-24-9")
+    cas_input = st.text_input("查询", placeholder="例如：1912-24-9", label_visibility='hidden')
     if st.button("查询"):
         if not cas_input:
             st.warning("请输入 CAS 号")
@@ -577,4 +577,5 @@ elif st.session_state.page == "cas":
     page_cas()
 else:
     page_home()
+
 
